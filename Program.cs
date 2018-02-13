@@ -12,8 +12,6 @@ namespace autopsy
         {
             Banner.PrintBanner();
 
-            VMUtils.IsVirtualMachine();
-
             var isElevated = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
             if (!isElevated)
@@ -31,7 +29,7 @@ namespace autopsy
                 Console.WriteLine("[*] Making log path...");
                 Directory.CreateDirectory(logPath);
             }
-            
+
             if (!Directory.Exists(resPath))
             {
                 if (offlineRun)
@@ -44,20 +42,31 @@ namespace autopsy
             }
 
             // Fetch operation requirements.
-            Console.WriteLine("Would you like to search for indicators of compromise? (yes/no)");
-            var runLoki = Console.ReadLine();
+            var updateOnly = "no";
+            var runLoki = "no";
+            var runComae = "no";
 
-            Console.WriteLine("Would you like to perform a memory dump? (yes/no)");
-            var runComae = Console.ReadLine();
-
-            if (runLoki.ToLower().StartsWith("y"))
+            if (!offlineRun)
             {
-                // Loki download+operation.
-                var lokiZip = Path.Combine(resPath, "loki.zip");
-                var lokiPath = Path.Combine(resPath, "loki");
-                var lokiBin = Path.Combine(lokiPath, "loki.exe");
-                var lokiUpdater = Path.Combine(lokiPath, "loki-upgrader.exe");
+                Console.WriteLine("Update only? (yes/no)");
+                updateOnly = Console.ReadLine();
+            }
 
+            if (updateOnly.ToLower().StartsWith("n"))
+            {
+                Console.WriteLine("Search for indicators of compromise? (yes/no)");
+                runLoki = Console.ReadLine();
+
+                Console.WriteLine("Perform a memory dump? (yes/no)");
+                runComae = Console.ReadLine();
+            }
+
+            // Loki download+operation.
+            var lokiZip = Path.Combine(resPath, "loki.zip");
+            var lokiPath = Path.Combine(resPath, "loki");
+
+            if (updateOnly.ToLower().StartsWith("y") || runLoki.ToLower().StartsWith("y"))
+            {
                 if (!Directory.Exists(lokiPath))
                 {
                     Console.WriteLine("[*] Retrieving latest Loki release from GitHub...");
@@ -77,19 +86,22 @@ namespace autopsy
                 else
                 {
                     Console.WriteLine("[*] Loki path alreday exists. Continuing...");
-
-                    if (!offlineRun)
-                    {
-                        var updated = LokiUtils.UpdateLoki(lokiUpdater, logPath);
-
-                        if (!updated)
-                        {
-                            ExitOnError("[!] Update failed.");
-                        }
-                    }
                 }
 
-                var scanned = LokiUtils.LokiScan(lokiBin, logPath);
+                if (!offlineRun)
+                {
+                    var updated = LokiUtils.UpdateLoki(lokiPath, logPath);
+
+                    if (!updated)
+                    {
+                        ExitOnError("[!] Update failed.");
+                    }
+                }
+            }
+
+            if (runLoki.ToLower().StartsWith("y"))
+            {
+                var scanned = LokiUtils.LokiScan(lokiPath, logPath);
 
                 if (scanned)
                 {
@@ -102,13 +114,12 @@ namespace autopsy
                 }
             }
 
-            if (runComae.ToLower().StartsWith("y"))
+            // Comae download+operation.
+            var comaeZip = Path.Combine(resPath, "comae.zip");
+            var comaePath = Path.Combine(resPath, "comae");
+
+            if (updateOnly.ToLower().StartsWith("y") || runComae.ToLower().StartsWith("y"))
             {
-                // Comae download+operation.
-                var comaeZip = Path.Combine(resPath, "comae.zip");
-                var comaePath = Path.Combine(resPath, "comae");
-                var comaeBin = Path.Combine(comaePath, "DumpIt.exe");
-                
                 if (!Directory.Exists(comaePath))
                 {
                     FetchComae(comaePath, comaeZip);
@@ -118,8 +129,11 @@ namespace autopsy
                 {
                     Console.WriteLine("[*] Comae Memory Toolkit path already exists. Continuing...");
                 }
+            }
 
-                ComaeReport(comaeBin);
+            if (runComae.ToLower().StartsWith("y"))
+            {
+                ComaeReport(comaePath);
             }
 
             Console.WriteLine("[*] Operations complete!");

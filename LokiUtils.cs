@@ -6,13 +6,17 @@ namespace autopsy
 {
     class LokiUtils
     {
-        public static bool UpdateLoki(string updatePath, string logPath)
+        public static bool UpdateLoki(string lokiPath, string logPath)
         {
+            var updatePath = Path.Combine(lokiPath, "loki-upgrader.exe");
+
             var logFile = Path.Combine(logPath, string.Format("lokiupdate-{0}.log", DateTime.Now.ToString("dd-MM-yy")));
             var lokiArgs = string.Format("-l \"{0}\"", logFile);
 
             var startInfo = new ProcessStartInfo(updatePath);
-            startInfo.UseShellExecute = false;
+            startInfo.WorkingDirectory = lokiPath;
+            startInfo.UseShellExecute = true;
+            startInfo.Verb = "runas";
             startInfo.CreateNoWindow = false;
             startInfo.Arguments = lokiArgs;
 
@@ -43,13 +47,17 @@ namespace autopsy
             return false;
         }
 
-        public static bool LokiScan(string binPath, string logPath)
+        public static bool LokiScan(string lokiPath, string logPath)
         {
+            var lokiBin = Path.Combine(lokiPath, "loki.exe");
+
             var logFile = Path.Combine(logPath, string.Format("lokiscan-{0}.log", DateTime.Now.ToString("dd-MM-yy")));
             var lokiArgs = string.Format("--dontwait --intense --allreasons --noindicator --reginfs -l \"{0}\"", logFile);
 
-            var startInfo = new ProcessStartInfo(binPath);
-            startInfo.UseShellExecute = false;
+            var startInfo = new ProcessStartInfo(lokiBin);
+            startInfo.WorkingDirectory = lokiPath;
+            startInfo.UseShellExecute = true;
+            startInfo.Verb = "runas";
             startInfo.CreateNoWindow = false;
             startInfo.Arguments = lokiArgs;
 

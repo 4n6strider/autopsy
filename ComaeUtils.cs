@@ -6,8 +6,10 @@ namespace autopsy
 {
     class ComaeUtils
     {
-        public static string DoDump(string comaeBin, string outPath)
+        public static string DoDump(string comaePath, string outPath)
         {
+            var comaeBin = Path.Combine(comaePath, "DumpIt.exe");
+
             var dumpFile = Path.Combine(outPath, string.Format("{0}-{1}.raw", Environment.MachineName, DateTime.Now.ToString("dd-MM-yy")));
 
             var dumpArgs = string.Format("/N /Q /T RAW /O \"{0}\"", dumpFile);
@@ -19,7 +21,9 @@ namespace autopsy
             }
 
             var startInfo = new ProcessStartInfo(comaeBin);
-            startInfo.UseShellExecute = false;
+            startInfo.WorkingDirectory = comaePath;
+            startInfo.UseShellExecute = true;
+            startInfo.Verb = "runas";
             startInfo.CreateNoWindow = false;
             startInfo.Arguments = dumpArgs;
 
